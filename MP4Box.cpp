@@ -15,19 +15,40 @@ int MP4Box::MP4_Open(const std::string path)
 		return -1;
 	}
 
-//	while (1) {
-		if (boxHead(box_mp4) == 0) {
-			int64_t size = 0;
-			char_to_int64(box_mp4.boxSize, 4, size);
-			std::cout << "box type: " << (char)box_mp4.boxType[0] << (char)box_mp4.boxType[1] 
-									  << (char)box_mp4.boxType[2] << (char)box_mp4.boxType[3]	
-									  << " size: "<< size << std::endl;
-			
-			int readLen = size - (box_mp4.fullBox ? (4 + 4 + 8) : (4 + 4));			
-			ftypeBox(box_mp4.data.ftype, readLen);
+	//ftype
+	int64_t size = 0;
+	if (boxHead(box_mp4) == 0) {
+		
+		char_to_int64(box_mp4.boxSize, 4, size);
+		std::cout << "box type: " << (char)box_mp4.boxType[0] << (char)box_mp4.boxType[1]
+			<< (char)box_mp4.boxType[2] << (char)box_mp4.boxType[3]
+			<< " size: " << size << std::endl;
 
-		}
-//	}
+		int readLen = size - (box_mp4.fullBox ? (4 + 4 + 8) : (4 + 4));
+		ftypeBox(box_mp4.data.ftype, readLen);
+
+	}
+
+
+	//moov
+	mp4Box box_moov;
+	boxHead(box_moov);	
+	char_to_int64(box_moov.boxSize, box_moov.fullBox ? 8 : 4, size = 0);
+	std::cout << "box type: " << (char)box_moov.boxType[0] << (char)box_moov.boxType[1]
+		<< (char)box_moov.boxType[2] << (char)box_moov.boxType[3]
+		<< " size: " << size << std::endl;
+
+	//mvhd https://www.cnblogs.com/ranson7zop/p/7889272.html
+	mp4Box box_mvhd;
+	boxHead(box_mvhd);
+	char_to_int64(box_mvhd.boxSize, box_mvhd.fullBox ? 8 : 4, size = 0);
+	std::cout << "box type: " << (char)box_mvhd.boxType[0] << (char)box_mvhd.boxType[1]
+		<< (char)box_mvhd.boxType[2] << (char)box_mvhd.boxType[3]
+		<< " size: " << size << std::endl;
+
+
+
+
 
 	return 0;
 }
@@ -51,18 +72,18 @@ int MP4Box::ftypeBox(FTYPE& box,int64_t length)
 	fin.read(box.minor_version, 4);
 	fin.read(box.compatible_brand, length - 8);
 
-	std::cout << "major_brand: " 
+	std::cout << "	major_brand: " 
 		<< (char)box.major_brand[0]
 		<< (char)box.major_brand[1]
 		<< (char)box.major_brand[2]
-		<< (char)box.major_brand[3] << std::endl;
+		<< (char)box.major_brand[3] << " ";
 	
 	
 	std::cout << "minor_version:"
 		<< (int)box.minor_version[0]
 		<< (int)box.minor_version[1]
 		<< (int)box.minor_version[2]
-		<< (int)box.minor_version[3] << std::endl;
+		<< (int)box.minor_version[3] << " ";
 	
 
 	std::cout << "compatible_brand: ";
@@ -88,10 +109,14 @@ int MP4Box::boxHead(mp4Box& box)
 
 	// get box type
 	fin.read(box.boxType, 4);
+	char_to_int64(box.boxSize,4,size);
 
-	if (atoi(box.boxSize) == 1) {
+	if (size == 1) { // full box
 		memset(box.boxSize, 0, 8);
 		fin.read(box.boxSize, 8);		
+	}
+	else if (size == 0) { // last box
+	
 	}
 	
 end:

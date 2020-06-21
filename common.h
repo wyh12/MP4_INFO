@@ -11,6 +11,10 @@ typedef struct {
 	char compatible_brand[16];
 }FTYPE;
 
+typedef struct {
+
+}MVHD;
+
 typedef struct mp4Box {
 	mp4Box() {
 		fullBox = false;
@@ -25,7 +29,9 @@ typedef struct mp4Box {
 	// box
 	typedef union
 	{
-		FTYPE ftype;
+		FTYPE	ftype;
+		MVHD	mvhd;
+
 	}boxData;
 	boxData data;
 }MP4BOX;
