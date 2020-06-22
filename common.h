@@ -2,6 +2,7 @@
 #ifndef __MP4_COMMON_H__
 #define __MP4_COMMON_H__
 #include <iostream>
+
 typedef struct {
 	/*	ÔÚISO×¢²áµÄ4¸ö×Ö·û¡£http://www.ftyps.com/	*/
 	char major_brand[4];
@@ -11,9 +12,13 @@ typedef struct {
 	char compatible_brand[16];
 }FTYPE;
 
-typedef struct {
-
+typedef struct MVHD {
+	
 }MVHD;
+
+typedef struct MOOV {
+//	MP4BOX moov_Container;
+}MOOV;
 
 typedef struct mp4Box {
 	mp4Box() {
@@ -30,8 +35,7 @@ typedef struct mp4Box {
 	typedef union
 	{
 		FTYPE	ftype;
-		MVHD	mvhd;
-
+		MOOV	mvhd;
 	}boxData;
 	boxData data;
 }MP4BOX;

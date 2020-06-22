@@ -8,7 +8,8 @@ bool char_to_int64(const char str[], int size,int64_t& number)
 
 	// ´ó¶Ë´æ´¢·½Ê½
 	for (int i(size); i > 0; i--) {
-		number += (int64_t)str[size - i] << (i - 1) * 8;
+		uint8_t value = str[size - i];
+		number += (int64_t)value << (i - 1) * 8;
 	}
 	return true;
 }

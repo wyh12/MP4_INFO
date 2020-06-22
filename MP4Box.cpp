@@ -24,7 +24,7 @@ int MP4Box::MP4_Open(const std::string path)
 			<< (char)box_mp4.boxType[2] << (char)box_mp4.boxType[3]
 			<< " size: " << size << std::endl;
 
-		int readLen = size - (box_mp4.fullBox ? (4 + 4 + 8) : (4 + 4));
+		int64_t readLen = size - (box_mp4.fullBox ? (4 + 4 + 8) : (4 + 4));
 		ftypeBox(box_mp4.data.ftype, readLen);
 
 	}
@@ -33,7 +33,8 @@ int MP4Box::MP4_Open(const std::string path)
 	//moov
 	mp4Box box_moov;
 	boxHead(box_moov);	
-	char_to_int64(box_moov.boxSize, box_moov.fullBox ? 8 : 4, size = 0);
+	size = 0;
+	char_to_int64(box_moov.boxSize, box_moov.fullBox ? 8 : 4, size);
 	std::cout << "box type: " << (char)box_moov.boxType[0] << (char)box_moov.boxType[1]
 		<< (char)box_moov.boxType[2] << (char)box_moov.boxType[3]
 		<< " size: " << size << std::endl;
@@ -41,7 +42,8 @@ int MP4Box::MP4_Open(const std::string path)
 	//mvhd https://www.cnblogs.com/ranson7zop/p/7889272.html
 	mp4Box box_mvhd;
 	boxHead(box_mvhd);
-	char_to_int64(box_mvhd.boxSize, box_mvhd.fullBox ? 8 : 4, size = 0);
+	size = 0;
+	char_to_int64(box_mvhd.boxSize, box_mvhd.fullBox ? 8 : 4, size);
 	std::cout << "box type: " << (char)box_mvhd.boxType[0] << (char)box_mvhd.boxType[1]
 		<< (char)box_mvhd.boxType[2] << (char)box_mvhd.boxType[3]
 		<< " size: " << size << std::endl;
