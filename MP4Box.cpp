@@ -1,4 +1,5 @@
 #include "MP4Box.h"
+#include <vector>
 
 MP4Box::~MP4Box()
 {
@@ -6,54 +7,74 @@ MP4Box::~MP4Box()
 		fin.close();
 }
 
-int MP4Box::MP4_Open(const std::string path)
+int MP4Box::MP4_Open(const std::string& path)
 {
-	mp4Box box_mp4;
+
+	std::vector<MP4BOX> boxer;
+	
+	
+
+	MP4BOX box_mp4;
 	fin.open(path,std::ios::in | std::ios::binary);
 	if (!fin.good()) {
 		std::cout << "open error\n";
 		return -1;
 	}
 
-	//ftype
-	int64_t size = 0;
-	if (boxHead(box_mp4) == 0) {
-		
-		char_to_int64(box_mp4.boxSize, 4, size);
-		std::cout << "box type: " << (char)box_mp4.boxType[0] << (char)box_mp4.boxType[1]
-			<< (char)box_mp4.boxType[2] << (char)box_mp4.boxType[3]
-			<< " size: " << size << std::endl;
-
-		int64_t readLen = size - (box_mp4.fullBox ? (4 + 4 + 8) : (4 + 4));
-		ftypeBox(box_mp4.data.ftype, readLen);
-
+	while (1) {
+		MP4BOX box;
+		int64_t size = 0;
+		if (boxHead(box_mp4) == 0) {
+			MP4_Parse_ByHeader(box_mp4);
+		}
+		break;
 	}
 
-
 	//moov
-	mp4Box box_moov;
-	boxHead(box_moov);	
-	size = 0;
-	char_to_int64(box_moov.boxSize, box_moov.fullBox ? 8 : 4, size);
-	std::cout << "box type: " << (char)box_moov.boxType[0] << (char)box_moov.boxType[1]
-		<< (char)box_moov.boxType[2] << (char)box_moov.boxType[3]
-		<< " size: " << size << std::endl;
+	//MP4BOX box_moov;
+	//boxHead(box_moov);	
+	//size = 0;
+	//char_to_int64(box_moov.bhdr.boxSize, box_moov.bhdr.fullBox ? 8 : 4, size);
+	//std::cout << "box type: " << (char)box_moov.bhdr.boxType[0] << (char)box_moov.bhdr.boxType[1]
+	//	<< (char)box_moov.bhdr.boxType[2] << (char)box_moov.bhdr.boxType[3]
+	//	<< " size: " << size << std::endl;
 
-	//mvhd https://www.cnblogs.com/ranson7zop/p/7889272.html
-	mp4Box box_mvhd;
-	boxHead(box_mvhd);
-	size = 0;
-	char_to_int64(box_mvhd.boxSize, box_mvhd.fullBox ? 8 : 4, size);
-	std::cout << "box type: " << (char)box_mvhd.boxType[0] << (char)box_mvhd.boxType[1]
-		<< (char)box_mvhd.boxType[2] << (char)box_mvhd.boxType[3]
-		<< " size: " << size << std::endl;
-
-
-
-
+	////mvhd https://www.cnblogs.com/ranson7zop/p/7889272.html
+	//MP4BOX box_mvhd;
+	//boxHead(box_mvhd);
+	//size = 0;
+	//char_to_int64(box_mvhd.bhdr.boxSize, box_mvhd.bhdr.fullBox ? 8 : 4, size);
+	//std::cout << "box type: " << (char)box_mvhd.bhdr.boxType[0] << (char)box_mvhd.bhdr.boxType[1]
+	//	<< (char)box_mvhd.bhdr.boxType[2] << (char)box_mvhd.bhdr.boxType[3]
+	//	<< " size: " << size << std::endl;
 
 	return 0;
 }
+
+int MP4Box::MP4_Parse_ByHeader(MP4BOX& box)
+{
+
+	int64_t readLen = box.bhdr.boxSize - (box.bhdr.fullBox ? (4 + 4 + 8) : (4 + 4));
+	if (box.bhdr.boxType == FTYP) {
+		std::cout << "box type " << "FTYP" << " size " << box.bhdr.boxSize << std::endl;
+		ftypeBox(box.data.ftype, readLen);
+	}
+	else if (box.bhdr.boxType == MOOV) {
+		std::cout << "box type " << "MOOV" << " size " << box.bhdr.boxSize << std::endl;
+		
+	}
+	else if (box.bhdr.boxType == MVHD) {
+		std::cout << "box type " << "MVHD" << " size " << box.bhdr.boxSize << std::endl;
+	}
+	else {
+		std::cout << "unknow box type " << std::hex << box.bhdr.boxType << std::endl;
+		return -1;
+	}
+	
+	return 0;
+}
+
+
 
 int64_t MP4Box::getSize(std::ifstream& fp)
 {
@@ -67,7 +88,8 @@ int64_t MP4Box::getSize(std::ifstream& fp)
 	return boxSize;
 }
 
-int MP4Box::ftypeBox(FTYPE& box,int64_t length)
+
+int MP4Box::ftypeBox(FTYPEBOX& box,int64_t length)
 {
 	//get compatible_brands
 	fin.read(box.major_brand, 4);
@@ -97,12 +119,14 @@ int MP4Box::ftypeBox(FTYPE& box,int64_t length)
 	return 0;
 }
 
-int MP4Box::boxHead(mp4Box& box)
+int MP4Box::boxHead(MP4BOX& box)
 {
 	int ret = 0;
-	int64_t size = 0;
+	char boxSize[8] = {};
+	char type[8] = {};
+	
 	// get box size 
-	fin.read(box.boxSize, 4);
+	fin.read(boxSize, 4);
 	if (!fin.good()) {
 		std::cout << __LINE__ << "read err\n";
 		ret = -1;
@@ -110,17 +134,27 @@ int MP4Box::boxHead(mp4Box& box)
 	}
 
 	// get box type
-	fin.read(box.boxType, 4);
-	char_to_int64(box.boxSize,4,size);
+	fin.read(type, 4);
+	
+	char_to_int64(type, 4,(int64_t&)(box.bhdr.boxType));
+	char_to_int64(boxSize,4,box.bhdr.boxSize);
 
-	if (size == 1) { // full box
-		memset(box.boxSize, 0, 8);
-		fin.read(box.boxSize, 8);		
+
+	if (box.bhdr.boxSize == 1) { // full box
+		memset(boxSize, 0, 8);
+		fin.read(boxSize, 8);
+		if (!fin.good()) {
+			std::cout << __LINE__ << "read err\n";
+			ret = -1;
+			goto end;
+		}
+		char_to_int64(boxSize, 4, box.bhdr.boxSize);
+
 	}
-	else if (size == 0) { // last box
+	else if (box.bhdr.boxSize == 0) { 
 	
 	}
 	
 end:
-	return 0;
+	return ret;
 }
