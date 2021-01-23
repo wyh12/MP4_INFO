@@ -17,6 +17,7 @@ private:
 	int64_t getSize(std::ifstream& fp);
 
 	int ftypeBox(FTYPEBOX& box, int64_t length);
+	int mvhdBox(MVHDBOX& box, int64_t length);
 	int boxHead(MP4BOX& box);
 };
 

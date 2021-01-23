@@ -12,8 +12,6 @@ int MP4Box::MP4_Open(const std::string& path)
 
 	std::vector<MP4BOX> boxer;
 	
-	
-
 	MP4BOX box_mp4;
 	fin.open(path,std::ios::in | std::ios::binary);
 	if (!fin.good()) {
@@ -27,7 +25,9 @@ int MP4Box::MP4_Open(const std::string& path)
 		if (boxHead(box_mp4) == 0) {
 			MP4_Parse_ByHeader(box_mp4);
 		}
-		break;
+		else {
+			std::cout << "error parse ...\n";
+		}
 	}
 
 	//moov
@@ -61,10 +61,15 @@ int MP4Box::MP4_Parse_ByHeader(MP4BOX& box)
 	}
 	else if (box.bhdr.boxType == MOOV) {
 		std::cout << "box type " << "MOOV" << " size " << box.bhdr.boxSize << std::endl;
-		
+		MP4BOX local_box;
+		// µÝ¹émoovÖÐµÄbox
+		while (boxHead(local_box) == 0) {
+			MP4_Parse_ByHeader(local_box);
+		}
 	}
 	else if (box.bhdr.boxType == MVHD) {
 		std::cout << "box type " << "MVHD" << " size " << box.bhdr.boxSize << std::endl;
+		mvhdBox(box.data.mvhd, readLen);
 	}
 	else {
 		std::cout << "unknow box type " << std::hex << box.bhdr.boxType << std::endl;
@@ -118,6 +123,17 @@ int MP4Box::ftypeBox(FTYPEBOX& box,int64_t length)
 
 	return 0;
 }
+
+int MP4Box::mvhdBox(MVHDBOX& box, int64_t length)
+{
+	char* data = new char[length];
+	fin.read(data, length);
+
+
+	return 0;
+}
+
+
 
 int MP4Box::boxHead(MP4BOX& box)
 {
