@@ -63,10 +63,6 @@ typedef struct {
 
 
 
-typedef struct MVHDBOX {
-
-}MVHDBOX;
-
 
 
 typedef struct MOOVBOX {
@@ -79,7 +75,7 @@ typedef union __boxer
 {
 	__boxer() {}
 	FTYPEBOX	ftype;
-	MVHDBOX	mvhd;
+	MVHDBOX		mvhd;
 		
 }BOXER;
 
