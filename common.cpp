@@ -1,5 +1,6 @@
 #include "common.h"
 
+
 bool char_to_int64(const char str[], int size,int64_t& number)
 {
 	if (str && size <= 0) {

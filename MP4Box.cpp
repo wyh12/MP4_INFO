@@ -53,7 +53,6 @@ int MP4Box::MP4_Open(const std::string& path)
 
 int MP4Box::MP4_Parse_ByHeader(MP4BOX& box)
 {
-
 	int64_t readLen = box.bhdr.boxSize - (box.bhdr.fullBox ? (4 + 4 + 8) : (4 + 4));
 	if (box.bhdr.boxType == FTYP) {
 		std::cout << "box type " << "FTYP" << " size " << box.bhdr.boxSize << std::endl;
@@ -128,7 +127,60 @@ int MP4Box::mvhdBox(MVHDBOX& box, int64_t length)
 {
 	char* data = new char[length];
 	fin.read(data, length);
+//	fin.flags & std::ios::failbit
+	int offset = 0;
+	box.version = data[offset];
+	if (box.version == 0) {
+		offset += 4; // flag标志位略过
+		// create time
+		char_to_int64(data + offset, 4, box.media.mv_0.create_time);
+		offset += 4;
 
+		// modfiy time
+		char_to_int64(data + offset, 4, box.media.mv_0.modify_time);
+		offset += 4;
+
+		// time scale 时间尺度
+		char_to_int64(data + offset, 4, box.media.mv_0.timescale);
+		offset += 4;
+
+		// track 时长
+		char_to_int64(data + offset, 4, box.media.mv_0.duration);
+		offset += 4;
+	}
+	else {
+		//未实现，，，
+	}
+
+
+	// rate 播放速率
+	int64_t rate;
+	char_to_int64(data + offset, 2, rate);
+	offset += 2;
+	box.rate = rate;
+	char_to_int64(data + offset, 2, rate);
+	box.rate += rate / 100000.0;
+	offset += 2;
+
+
+	//volume
+	box.volume = *(data + offset);
+	box.volume += *(data + offset + 1) / 1000.0;
+	offset += 2;
+
+	// 保留位
+	memcpy(box.reserved, data + offset, 10);
+	offset += 10;
+
+	//视频变换矩阵
+	memcpy(box.matrix, data + offset, 36);
+	offset += 36;
+
+	// prd-defined 24 跳过
+	offset += 24;
+
+	// next track id
+	char_to_int64(data + offset, 4, box.next_tid);
 
 	return 0;
 }

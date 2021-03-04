@@ -13,12 +13,14 @@ enum  BoxType:int64_t{
 };
 
 typedef struct  {
-	uint32_t	create_time;
-	uint32_t	modify_time;
-	uint32_t	timescale;
-	uint32_t	duration;
+	int64_t	create_time;
+	int64_t	modify_time;
+	int64_t	timescale;
+	int64_t	duration;
 }media_version_0;
 
+
+// ÓÐ´ýÑÐ¾¿
 typedef struct {
 	uint64_t	create_time;
 	uint64_t	modify_time;
@@ -35,11 +37,27 @@ typedef struct mvhdbox {
 	Media media;
 	double rate;
 	double volume;
+	char reserved[10];
+	char matrix[36];
+	int64_t next_tid;
+
+}MVHDBOX;
+
+
+
+
+typedef struct boxtrak {
+	int version;
+	char flag[3];
+	union Media {
+		media_version_0 mv_0;
+		media_version_1 mv_1;
+	};
+	int64_t trackid;
 
 	
 
-
-}MVHDBOX;
+}TRAKBOX;
 
 typedef struct boxHead {
 	boxHead() {
