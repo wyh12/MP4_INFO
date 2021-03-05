@@ -60,15 +60,44 @@ int MP4Box::MP4_Parse_ByHeader(MP4BOX& box)
 	}
 	else if (box.bhdr.boxType == MOOV) {
 		std::cout << "box type " << "MOOV" << " size " << box.bhdr.boxSize << std::endl;
-		MP4BOX local_box;
-		// 递归moov中的box
-		while (boxHead(local_box) == 0) {
-			MP4_Parse_ByHeader(local_box);
-		}
+		//MP4BOX local_box;
+		//// 递归moov中的box
+		//while (boxHead(local_box) == 0) {
+		//	MP4_Parse_ByHeader(local_box);
+		//}
 	}
 	else if (box.bhdr.boxType == MVHD) {
 		std::cout << "box type " << "MVHD" << " size " << box.bhdr.boxSize << std::endl;
 		mvhdBox(box.data.mvhd, readLen);
+	}
+	else if (box.bhdr.boxType == TRAK) {
+		std::cout << "box type " << "TRAK" << " size " << box.bhdr.boxSize << std::endl;
+	}
+	else if (box.bhdr.boxType == TKHD) {
+		std::cout << "box type " << "TKHD" << " size " << box.bhdr.boxSize << std::endl;
+		tkhdBox(box.data.tkhd,readLen);
+	}
+	else if (box.bhdr.boxType == EDTS) {
+		std::cout << "box type " << "EDTS" << " size " << box.bhdr.boxSize << std::endl;
+		edtsBox(box.data.edts, readLen);
+	}
+	else if (box.bhdr.boxType == MDIA) {
+		std::cout << "box type " << "MDIA" << " size " << box.bhdr.boxSize << std::endl;
+	}
+	else if (box.bhdr.boxType == MDHD) {
+		std::cout << "box type " << "MDHD" << " size " << box.bhdr.boxSize << std::endl;
+		mdhdBox(box.data.mdhd, readLen);
+	}
+	else if (box.bhdr.boxType == HDLR) {
+		std::cout << "box type " << "HDLR" << " size " << box.bhdr.boxSize << std::endl;
+		hdlrBox(box.data.hdlr, readLen);
+	}
+	else if (box.bhdr.boxType == MINF) {
+		std::cout << "box type " << "MINF" << " size " << box.bhdr.boxSize << std::endl;
+	}
+	else if (box.bhdr.boxType == VMHD) {
+		std::cout << "box type " << "VMHD" << " size " << box.bhdr.boxSize << std::endl;
+
 	}
 	else {
 		std::cout << "unknow box type " << std::hex << box.bhdr.boxType << std::endl;
@@ -181,11 +210,179 @@ int MP4Box::mvhdBox(MVHDBOX& box, int64_t length)
 
 	// next track id
 	char_to_int64(data + offset, 4, box.next_tid);
+	delete[] data;
+	return 0;
+}
 
+int MP4Box::tkhdBox(TKHDBOX& box, int64_t length)
+{
+	char* data = new char[length];
+	fin.read(data, length);
+
+	int offset = 0;
+	box.version = data[offset];
+	if (box.version == 0) {
+
+		// flag标志位 
+		memcpy(box.flag, data + 1, 3);
+		offset += 4; 
+
+		// create time
+		char_to_int64(data + offset, 4, box.media.mv_0.create_time);
+		offset += 4;
+
+		// modfiy time
+		char_to_int64(data + offset, 4, box.media.mv_0.modify_time);
+		offset += 4;
+
+		// trakid id不能重复且不为0
+		char_to_int64(data + offset, 4, box.trackid);
+		offset += 4;
+
+		// reserved  保留位 4 Byte
+		offset += 4;
+
+		// track 时长
+		char_to_int64(data + offset, 4, box.media.mv_0.duration);
+		offset += 4;
+
+		// reserved  保留位 8 Byte
+		offset += 8;
+	}
+	else {
+		//未实现，，，
+	}
+
+	// layer 视频层，默认为0，值小的在上层
+	int64_t temp;
+	char_to_int64(data + offset, 2, temp);
+	box.layer = temp;
+	offset += 2;
+
+	// track分组信息，默认为0表示该track未与其他track有群组关系
+	char_to_int64(data + offset, 2, temp);
+	box.alternate_group = temp;
+	offset += 2;
+
+	// volume
+	box.volume = *(data + offset);
+	box.volume += *(data + offset + 1) / 1000.0;
+	offset += 2;
+
+	// 保留位 2 byte
+	offset += 2;
+
+	//matrix 视频变换矩阵
+	offset += 36;
+
+	// w,h
+	char_to_int64(data + offset, 2, temp);
+	offset += 2;
+	box.width = temp;
+	char_to_int64(data + offset, 2, temp);
+	box.width += temp / 100000.0;
+	offset += 2;
+
+	char_to_int64(data + offset, 2, temp);
+	offset += 2;
+	box.height = temp;
+	char_to_int64(data + offset, 2, temp);
+	box.height += temp / 100000.0;
+	offset += 2;
+
+	
+	delete[] data;
+	return 0;
+}
+
+int MP4Box::mdhdBox(MDHDBOX& box, int64_t length)
+{
+	char* data = new char[length];
+	fin.read(data, length);
+
+	int offset = 0;
+	box.version = data[offset];
+	if (box.version == 0) {
+		// flag标志位 
+		memcpy(box.flag, data + 1, 3);
+		offset += 4;
+
+		// create time
+		char_to_int64(data + offset, 4, box.media.mv_0.create_time);
+		offset += 4;
+
+		// modfiy time
+		char_to_int64(data + offset, 4, box.media.mv_0.modify_time);
+		offset += 4;
+
+		// time scale 时间尺度
+		char_to_int64(data + offset, 4, box.media.mv_0.timescale);
+		offset += 4;
+
+		// track 时长
+		char_to_int64(data + offset, 4, box.media.mv_0.duration);
+		offset += 4;
+		
+		// 语言码 ISO_639-2 首位为0，剩余的5位一组，从字母顺序表取值。https://baike.baidu.com/item/ISO_639-2/9935792?fr=aladdin
+		box.language_code[0] = *(data + offset);
+		box.language_code[1] = *(data + offset + 1);
+		offset += 2;
+
+		// prd_defined
+		box.pre_defined[0] = *(data + offset);
+		box.pre_defined[1] = *(data + offset + 1);
+	}
+	else {
+		std::cout << "error not support box version " << box.version << std::endl;
+	}
+
+	delete[]data;
+	return 0;
+}
+
+int MP4Box::hdlrBox(HDLRBOX& box, int64_t length)
+{
+	char* data = new char[length];
+	fin.read(data, length);
+
+	int offset = 0;
+	box.version = data[offset];
+	if (box.version == 0) {
+		// flag标志位 
+		memcpy(box.flag, data + 1, 3);
+		offset += 4;
+
+		// pre-defined 4 byte
+		offset += 4;
+
+		//handler type
+		memcpy(box.handle_type, data + offset, 4);
+		offset += 4;
+
+		// reserved 12
+		offset += 12;
+
+		// name 
+		std::cout << "name " << (data + offset) << std::endl;
+
+	}
+	else {
+		std::cout << "error not support box version " << box.version << std::endl;
+	}
+
+	delete[] data;
 	return 0;
 }
 
 
+int MP4Box::edtsBox(EDTSBOX& box, int64_t length)
+{
+	// 暂时不用解析，跳过。内部还包含有elst box
+	std::streampos pos = fin.tellg();
+	pos += length;
+	fin.seekg(pos);
+	return 0;
+}
 
 int MP4Box::boxHead(MP4BOX& box)
 {

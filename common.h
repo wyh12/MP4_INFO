@@ -9,6 +9,14 @@ enum  BoxType:int64_t{
 	FTYP     = 0x66747970,
 	MOOV	 = 0x6D6F6F76,
 	MVHD	 = 0x6D766864,			//This box defines overall information which is media-independent, and relevant to the entire presentation
+	TRAK	 = 0x7472616b,
+	TKHD	 = 0x746b6864,
+	EDTS	 = 0x65647473,
+	MDIA	 = 0x6d646961,
+	MDHD	 = 0x6d646864,
+	HDLR	 = 0x68646c72,
+	MINF	 = 0x6d696e66,
+	VMHD	 = 0x766d6864,
 	NONETYPE = 0x00,
 };
 
@@ -28,12 +36,14 @@ typedef struct {
 	uint64_t	duration;
 }media_version_1;
 
+
+union Media {
+	media_version_0 mv_0;
+	media_version_1 mv_1;
+};
+
 typedef struct mvhdbox {
 	int version;
-	union Media {
-		media_version_0 mv_0;
-		media_version_1 mv_1;
-	};
 	Media media;
 	double rate;
 	double volume;
@@ -46,18 +56,63 @@ typedef struct mvhdbox {
 
 
 
-typedef struct boxtrak {
+typedef struct boxtkhd {
+	int version;
+/*	
+	0x000001 track_enabled，否则该track不被播放；
+	0x000002 track_in_movie，表示该track在播放中被引用；
+	0x000004 track_in_preview，表示该track在预览时被引用。	
+	一般该值为7，如果一个媒体所有track均未设置track_in_movie和track_in_preview，将被理解为所有track均设置了这两项；
+	对于hint track，该值为0。
+*/
+	char flag[3];
+	Media media;
+	int64_t trackid;
+	int16_t alternate_group;
+	int16_t layer;
+	double volume;
+	double width;
+	double height;
+	
+}TKHDBOX;
+
+
+
+typedef struct boxedts {
+	
+}EDTSBOX;
+
+
+typedef struct boxmdhd {
 	int version;
 	char flag[3];
-	union Media {
-		media_version_0 mv_0;
-		media_version_1 mv_1;
-	};
-	int64_t trackid;
+	Media media;
+	char language_code[2];
+	char pre_defined[2];
 
+}MDHDBOX;
+
+typedef struct boxhdlr {
+	int version;
+	char flag[3];
+	char handle_type[4];
+
+}HDLRBOX;
+
+typedef struct boxvmhd {
+	int version;
+	char flag[3];
+	int64_t graphics_mode;
 	
+}VMHDBOX;
 
-}TRAKBOX;
+typedef struct boxsmhd {
+	int version;
+	char flag[3];
+	double balance;
+}SMHDBOX;
+
+
 
 typedef struct boxHead {
 	boxHead() {
@@ -86,6 +141,9 @@ typedef struct {
 typedef struct MOOVBOX {
 	BOXHEAD bhdr;
 	MVHDBOX	mvhdBox;
+	TKHDBOX tkhd;
+	
+
 }MOOVBOX;
 
 
@@ -94,7 +152,10 @@ typedef union __boxer
 	__boxer() {}
 	FTYPEBOX	ftype;
 	MVHDBOX		mvhd;
-		
+	TKHDBOX		tkhd;
+	EDTSBOX		edts;
+	MDHDBOX		mdhd;
+	HDLRBOX		hdlr;
 }BOXER;
 
 

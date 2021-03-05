@@ -18,6 +18,10 @@ private:
 
 	int ftypeBox(FTYPEBOX& box, int64_t length);
 	int mvhdBox(MVHDBOX& box, int64_t length);
+	int tkhdBox(TKHDBOX& box, int64_t length);
+	int edtsBox(EDTSBOX& box, int64_t length);
+	int mdhdBox(MDHDBOX& box, int64_t length);
+	int hdlrBox(HDLRBOX& box, int64_t length);
 	int boxHead(MP4BOX& box);
 };
 
