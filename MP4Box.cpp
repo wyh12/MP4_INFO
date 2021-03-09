@@ -97,7 +97,19 @@ int MP4Box::MP4_Parse_ByHeader(MP4BOX& box)
 	}
 	else if (box.bhdr.boxType == VMHD) {
 		std::cout << "box type " << "VMHD" << " size " << box.bhdr.boxSize << std::endl;
-
+		vmhdBox(box.data.vmhd, readLen);
+	}
+	else if (box.bhdr.boxType == DINF) {
+		std::cout << "box type " << "DINF" << " size " << box.bhdr.boxSize << std::endl;
+		drefBox(box.data.dref, readLen);
+	}
+	else if (box.bhdr.boxType == STBL) {
+		std::cout << "box type " << "STBL" << " size " << box.bhdr.boxSize << std::endl;
+		
+	}
+	else if (box.bhdr.boxType == STSD) {
+		std::cout << "box type " << "STSD" << " size " << box.bhdr.boxSize << std::endl;
+		avc1Box(box.data.avc1, readLen);
 	}
 	else {
 		std::cout << "unknow box type " << std::hex << box.bhdr.boxType << std::endl;
@@ -336,7 +348,7 @@ int MP4Box::mdhdBox(MDHDBOX& box, int64_t length)
 		std::cout << "error not support box version " << box.version << std::endl;
 	}
 
-	delete[]data;
+	delete[] data;
 	return 0;
 }
 
@@ -374,6 +386,39 @@ int MP4Box::hdlrBox(HDLRBOX& box, int64_t length)
 	return 0;
 }
 
+int MP4Box::vmhdBox(VMHDBOX& box, int64_t length)
+{
+	// 暂时解析，跳过。
+	std::streampos pos = fin.tellg();
+	pos += length;
+	fin.seekg(pos);
+	return 0;
+}
+
+int MP4Box::drefBox(DREFBOX& box, int64_t length)
+{
+	// 百度结果 包含有url字段，绿色为box flag，值为1，说明“url”中的字符串为空，表示track数据已包含在文件中。
+	// 猜测url字段也为 version ，flag结构，flag = 1。
+	char* data = new char[length];
+	fin.read(data, length);
+
+	int offset = 0;
+	box.version = data[offset];
+	if (box.version == 0) {	
+		// flag标志位 
+		memcpy(box.flag, data + 1, 3);
+		offset += 4;
+
+		// 
+		char_to_int64(data + offset, 4, box.url_count);
+		offset += 4;
+
+		// 具体url暂不解析
+	}
+
+	delete[] data;
+	return 0;
+}
 
 int MP4Box::edtsBox(EDTSBOX& box, int64_t length)
 {
@@ -381,6 +426,110 @@ int MP4Box::edtsBox(EDTSBOX& box, int64_t length)
 	std::streampos pos = fin.tellg();
 	pos += length;
 	fin.seekg(pos);
+	return 0;
+}
+
+int MP4Box::avc1Box(AVC1BOX& box, int64_t length)
+{
+	char* data = new char[length];
+	fin.read(data, length);
+
+	int offset = 16;
+	
+	//reserved 6 byte
+	offset += 6;
+
+	// data_reference_index
+	int64_t temp;
+	char_to_int64(data + offset, 2, temp);
+	box.data_reference_index = temp;
+	offset += 2;
+
+	// pred_defined
+	offset += 2;
+
+	//reserved
+	offset += 2;
+
+	// pre_defined 3*4
+	memcpy(box.predefined, data + offset, 12);
+	offset += 12;
+
+	//width
+	char_to_int64(data + offset, 2, temp);
+	box.width = temp;
+	offset += 2;
+
+	//height	
+	char_to_int64(data + offset, 2, temp);
+	box.height = temp;
+	offset += 2;
+
+	// horiz_res
+	char_to_int64(data + offset, 4, box.horiz_res);
+	offset += 4;
+
+	// vert_res
+	char_to_int64(data + offset, 4, box.vert_res);
+	offset += 4;
+
+	// reserver 4 byte
+	offset += 4;
+
+	// frame count 
+	char_to_int64(data + offset, 2, temp);
+	box.frame_count = temp;
+	offset += 2;
+
+	// compressr_name
+	memcpy(box.compress_name, data + offset, 32);
+	offset += 32;
+
+	// bit_depth
+	char_to_int64(data + offset, 2, temp);
+	box.bit_depth = temp;
+	offset += 2;
+
+	// pre_define
+	char_to_int64(data + offset, 2, temp);
+	box.pre_define = temp;
+	offset += 2;
+
+	// 跳过avcC头
+	offset += 8;
+
+	// version
+	box.avcC.version				= *(data + offset);
+	box.avcC.avcProfileIndication	= *(data + offset + 1);
+	box.avcC.profile_compatibility	= *(data + offset + 2);
+	box.avcC.avcLevelIndication		= *(data + offset + 3);
+	box.avcC.nalu_len				= *(data + offset + 4);
+	box.avcC.sps_num				= (*(data + offset + 5)) & 0x1F;
+	offset += 6;
+
+	// sps size
+	char_to_int64(data + offset, 2, temp);
+	box.avcC.sps_size = temp;
+	offset += 2;
+	// copy sps
+	memcpy(box.avcC.sps, data + offset, box.avcC.sps_size);
+	offset += box.avcC.sps_size;
+
+
+
+	// pps num 
+	box.avcC.pps_num = (*(data + offset)) & 0x1F;
+	offset += 1;
+	// pps size 
+	char_to_int64(data + offset, 2, temp);
+	box.avcC.pps_size = temp;
+	offset += 2;
+
+	// copy pps
+	memcpy(box.avcC.pps, data + offset, box.avcC.pps_size);
+	offset += box.avcC.pps_size;
+
+	delete[] data;
 	return 0;
 }
 

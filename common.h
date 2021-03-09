@@ -17,6 +17,10 @@ enum  BoxType:int64_t{
 	HDLR	 = 0x68646c72,
 	MINF	 = 0x6d696e66,
 	VMHD	 = 0x766d6864,
+	DINF	 = 0x64696e66,
+	DREF	 = 0x64726566,
+	STBL	 = 0x7374626C,
+	STSD	 = 0x73747364,
 	NONETYPE = 0x00,
 };
 
@@ -113,6 +117,51 @@ typedef struct boxsmhd {
 }SMHDBOX;
 
 
+typedef struct boxstsd {
+	int version;
+	char flag[3];
+	int64_t sample_dess;
+
+}STSDBOX;
+
+typedef struct boxavcC {
+	int8_t version;
+	int8_t avcProfileIndication;
+	int8_t profile_compatibility;
+	int8_t avcLevelIndication;
+	int8_t nalu_len; // 没懂
+	int8_t sps_num; // 低5位有效
+	int16_t sps_size; // 应该是总长度
+	char sps[64];  //大部分应该够用了
+
+	int8_t pps_num;
+	int16_t pps_size;
+	char pps[64];
+
+}AVCCBOX;
+
+typedef struct boxavc1 {
+	int16_t data_reference_index;
+	char predefined[3*4];
+	int16_t		width;
+	int16_t		height;
+	int64_t		horiz_res;
+	int64_t		vert_res;
+
+	int16_t		frame_count;
+	char		compress_name[32];
+	int16_t		bit_depth;
+	int16_t		pre_define;
+	AVCCBOX  avcC;
+}AVC1BOX;
+
+
+typedef struct boxdref {
+	int version;
+	char flag[3];
+	int64_t url_count;
+
+}DREFBOX;
 
 typedef struct boxHead {
 	boxHead() {
@@ -156,6 +205,9 @@ typedef union __boxer
 	EDTSBOX		edts;
 	MDHDBOX		mdhd;
 	HDLRBOX		hdlr;
+	VMHDBOX		vmhd;
+	DREFBOX		dref;
+	AVC1BOX		avc1;
 }BOXER;
 
 

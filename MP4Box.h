@@ -22,6 +22,10 @@ private:
 	int edtsBox(EDTSBOX& box, int64_t length);
 	int mdhdBox(MDHDBOX& box, int64_t length);
 	int hdlrBox(HDLRBOX& box, int64_t length);
+	int vmhdBox(VMHDBOX& box, int64_t length);
+	int drefBox(DREFBOX& box, int64_t length);
+	// 这个结构比较重要
+	int avc1Box(AVC1BOX& box, int64_t length);
 	int boxHead(MP4BOX& box);
 };
 
