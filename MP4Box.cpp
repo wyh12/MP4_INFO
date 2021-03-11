@@ -111,6 +111,10 @@ int MP4Box::MP4_Parse_ByHeader(MP4BOX& box)
 		std::cout << "box type " << "STSD" << " size " << box.bhdr.boxSize << std::endl;
 		avc1Box(box.data.avc1, readLen);
 	}
+	else if (box.bhdr.boxType == STTS) {
+		std::cout << "box type " << "STTS" << " size " << box.bhdr.boxSize << std::endl;
+		sttsBox(box.data.stts, readLen);
+	}
 	else {
 		std::cout << "unknow box type " << std::hex << box.bhdr.boxType << std::endl;
 		return -1;
@@ -528,6 +532,39 @@ int MP4Box::avc1Box(AVC1BOX& box, int64_t length)
 	// copy pps
 	memcpy(box.avcC.pps, data + offset, box.avcC.pps_size);
 	offset += box.avcC.pps_size;
+
+	delete[] data;
+	return 0;
+}
+
+int MP4Box::sttsBox(STTSBOX& box, int64_t length)
+{
+	char* data = new char[length];
+	fin.read(data, length);
+	int offset = 0;
+	box.version = data[offset];
+	if (box.version == 0) {
+		// flag±êÖ¾Î» 
+		memcpy(box.flag, data + 1, 3);
+		offset += 4;
+
+		// sample count 
+		char_to_int64(data + offset, 4, box.time_to_sample);
+		offset += 4;
+
+		box.ts = new std::vector<boxts>;
+		for (int i = 0; i < box.time_to_sample; i++) {
+			boxts stamp;
+			char_to_int64(data + offset, 4, stamp.sample_count);
+			offset += 4;
+			char_to_int64(data + offset, 4, stamp.sample_duration);
+			offset += 4;
+			box.ts->push_back(stamp);
+		}		
+	}
+	else {
+		
+	}
 
 	delete[] data;
 	return 0;

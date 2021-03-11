@@ -2,6 +2,7 @@
 #ifndef __MP4_COMMON_H__
 #define __MP4_COMMON_H__
 #include <iostream>
+#include <vector>
 
 //c11 新增特性，显示声明enum大小
 enum  BoxType:int64_t{
@@ -21,6 +22,8 @@ enum  BoxType:int64_t{
 	DREF	 = 0x64726566,
 	STBL	 = 0x7374626C,
 	STSD	 = 0x73747364,
+	STTS	 = 0x73747473,
+	STSS	 = 0x73747373,
 	NONETYPE = 0x00,
 };
 
@@ -155,6 +158,18 @@ typedef struct boxavc1 {
 	AVCCBOX  avcC;
 }AVC1BOX;
 
+struct boxts {
+	int64_t sample_count;
+	int64_t sample_duration;
+};
+
+//stts  (time to stamp)采样时戳因映射表box
+typedef struct boxstts {
+	int version;
+	char flag[3];
+	int64_t time_to_sample;
+	std::vector<boxts> *ts;
+}STTSBOX;
 
 typedef struct boxdref {
 	int version;
@@ -208,6 +223,7 @@ typedef union __boxer
 	VMHDBOX		vmhd;
 	DREFBOX		dref;
 	AVC1BOX		avc1;
+	STTSBOX		stts;
 }BOXER;
 
 
