@@ -10,6 +10,8 @@ MP4Box::~MP4Box()
 int MP4Box::MP4_Open(const std::string& path)
 {
 
+	parseMDAT(path);
+	return 0;
 	std::vector<MP4BOX> boxer;
 	
 	MP4BOX box_mp4;
@@ -114,6 +116,26 @@ int MP4Box::MP4_Parse_ByHeader(MP4BOX& box)
 	else if (box.bhdr.boxType == STTS) {
 		std::cout << "box type " << "STTS" << " size " << box.bhdr.boxSize << std::endl;
 		sttsBox(box.data.stts, readLen);
+	}
+	else if (box.bhdr.boxType == STSS) {
+		std::cout << "box type " << "STSS" << " size " << box.bhdr.boxSize << std::endl;
+		stssBox(box.data.stss, readLen);
+	}
+	else if (box.bhdr.boxType == CTTS) {
+		std::cout << "box type " << "CTTS" << " size " << box.bhdr.boxSize << std::endl;
+		cttsBox(box.data.ctts, readLen);
+	}
+	else if (box.bhdr.boxType == STSC) {
+		std::cout << "box type " << "STSC" << " size " << box.bhdr.boxSize << std::endl;
+		stscBox(box.data.stsc, readLen);
+	}
+	else if (box.bhdr.boxType == STSZ) {
+		std::cout << "box type " << "STSZ" << " size " << box.bhdr.boxSize << std::endl;
+		stszBox(box.data.stsz, readLen);
+	}
+	else if (box.bhdr.boxType == STCO) {   //  到这里视频就基本解析完成了
+		std::cout << "box type " << "STCO" << " size " << box.bhdr.boxSize << std::endl;
+		stcoBox(box.data.stco, readLen);
 	}
 	else {
 		std::cout << "unknow box type " << std::hex << box.bhdr.boxType << std::endl;
@@ -570,6 +592,161 @@ int MP4Box::sttsBox(STTSBOX& box, int64_t length)
 	return 0;
 }
 
+int MP4Box::stssBox(STSSBOX& box, int64_t length)
+{
+	char* data = new char[length];
+	fin.read(data, length);
+	int offset = 0;
+	box.version = data[offset];
+	if (box.version == 0) {
+		// flag标志位 
+		memcpy(box.flag, data + 1, 3);
+		offset += 4;
+
+		// entry_count
+		char_to_int64(data + offset, 4, box.entry_count);
+		offset += 4;
+
+		box.sample_num = new std::vector<int32_t>();
+		for (int i = 0; i < box.entry_count; i++) {
+			int64_t index;
+			char_to_int64(data + offset, 4, index);
+			offset += 4;
+			box.sample_num->push_back(index);
+		}
+	}
+	else {
+
+	}
+
+	delete[] data;
+	return 0;
+}
+
+int MP4Box::cttsBox(CTTSBOX& box, int64_t length)
+{
+	char* data = new char[length];
+	fin.read(data, length);
+	int offset = 0;
+	box.version = data[offset];
+	if (box.version == 0) {
+		// flag标志位 
+		memcpy(box.flag, data + 1, 3);
+		offset += 4;
+
+		// entry_count
+		char_to_int64(data + offset, 4, box.entry_count);
+		offset += 4;
+
+
+		box.ts = new std::vector<boxts>;
+		for (int i = 0; i < box.entry_count; i++) {
+			boxts stamp;
+			char_to_int64(data + offset, 4, stamp.sample_count);
+			offset += 4;
+			char_to_int64(data + offset, 4, stamp.sample_duration);
+			offset += 4;
+			box.ts->push_back(stamp);
+		}
+	}
+
+	delete[] data;
+	return 0;
+}
+
+int MP4Box::stscBox(STSCBOX& box, int64_t length)
+{
+	char* data = new char[length];
+	fin.read(data, length);
+	int offset = 0;
+	box.version = data[offset];
+	if (box.version == 0) {
+		// flag标志位 
+		memcpy(box.flag, data + 1, 3);
+		offset += 4;
+
+		// entry_count
+		char_to_int64(data + offset, 4, box.entry_count);
+		offset += 4;
+		
+		box.chunks = new std::vector<chunk>;
+		for (int i = 0; i < box.entry_count; i++) {
+			chunk ck;
+			char_to_int64(data + offset, 4, ck.first_chunk);
+			offset += 4;
+			char_to_int64(data + offset, 4, ck.sample_per_chunk);
+			offset += 4;
+			char_to_int64(data + offset, 4, ck.sample_description_index);
+			offset += 4;
+			box.chunks->push_back(ck);
+		}
+	}
+	delete[] data;
+	return 0;
+}
+
+int MP4Box::stszBox(STSZBOX& box, int64_t length)
+{
+	char* data = new char[length];
+	fin.read(data, length);
+	int offset = 0;
+	box.version = data[offset];
+	if (box.version == 0) {
+		// flag标志位 
+		memcpy(box.flag, data + 1, 3);
+		offset += 4;
+		
+		// sample size
+		char_to_int64(data + offset, 4, box.sample_size_);
+		offset += 4;
+
+		// sample count
+		char_to_int64(data + offset, 4, box.sample_count);
+		offset += 4;
+
+		box.size = new std::vector<int64_t>;
+		for (int i = 0; i < box.sample_count; i++) {
+			int64_t temp;
+			char_to_int64(data + offset, 4, temp);
+			offset += 4;
+
+			box.size->push_back(temp);
+		}
+	}
+
+	delete[] data;
+	return 0;
+}
+
+int MP4Box::stcoBox(STCOBOX& box, int64_t length)
+{
+	char* data = new char[length];
+	fin.read(data, length);
+	int offset = 0;
+	box.version = data[offset];
+	if (box.version == 0) {
+		// flag标志位 
+		memcpy(box.flag, data + 1, 3);
+		offset += 4;
+
+		// sample size
+		char_to_int64(data + offset, 4, box.entry_count);
+		offset += 4;
+
+		box.offset = new std::vector<int64_t>;
+		for (int i = 0; i < box.entry_count; i++) {
+			int64_t temp;
+			char_to_int64(data + offset, 4, temp);
+			offset += 4;
+
+			box.offset->push_back(temp);
+		}
+	}
+
+	delete[] data;
+	return 0;
+}
+
 int MP4Box::boxHead(MP4BOX& box)
 {
 	int ret = 0;
@@ -608,4 +785,63 @@ int MP4Box::boxHead(MP4BOX& box)
 	
 end:
 	return ret;
+}
+
+int MP4Box::parseMDAT(const std::string& path)
+{
+	std::ifstream ft;
+	ft.open(path, std::ios::in | std::ios::binary);
+	if (!ft.good()) {
+		std::cout << "open error\n";
+		return -1;
+	}
+
+	char boxHead[8];
+	int64_t mdatSize;
+	while (1) {
+		ft.read(boxHead, 8);
+		int64_t type;
+		char_to_int64(boxHead, 4, mdatSize);
+		char_to_int64(boxHead + 4, 4, type);
+		std::cout << "type" << type << " size "<< mdatSize <<std::endl;
+		if (type == MDAT) {
+			break;
+		}
+		int64_t offset = ft.tellg();
+		offset += mdatSize - 8;
+
+		ft.seekg(offset, std::ios::beg);
+	}
+
+	// 解析mdat
+	while (1) {
+		
+		if (mdatSize == 1) {
+			char size[8] = {};
+			ft.read(size, 8);
+			int64_t hb, lb;
+			char_to_int64(size, 4, hb);
+			char_to_int64(size+4, 4, lb);
+			mdatSize = (hb << 4) + lb;
+			std::cout << " mdatSize " << mdatSize << std::endl;
+		}
+		ft.read(boxHead, 4);
+		int64_t size, type;
+		char_to_int64(boxHead, 4, size);
+
+		int64_t offset = ft.tellg();
+		std::cout << " pos offset " << offset - 4 << " size " << size << std::endl;
+		
+		offset += size;
+		if (offset > mdatSize) {
+			break;
+		}
+
+		ft.seekg(offset, std::ios::beg);
+		
+	}
+
+	
+	ft.close();
+	return 0;
 }

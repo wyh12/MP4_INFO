@@ -28,7 +28,14 @@ private:
 	// 以下结构比较重要
 	int avc1Box(AVC1BOX& box, int64_t length);
 	int sttsBox(STTSBOX& box, int64_t length);
+	int stssBox(STSSBOX& box, int64_t length);
+	int cttsBox(CTTSBOX& box, int64_t length);
+	int stscBox(STSCBOX& box, int64_t length);
+	int stszBox(STSZBOX& box, int64_t length);
+	int stcoBox(STCOBOX& box, int64_t length);
 
 	int boxHead(MP4BOX& box);
+
+	int parseMDAT(const std::string& path);
 };
 

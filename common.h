@@ -6,7 +6,6 @@
 
 //c11 新增特性，显示声明enum大小
 enum  BoxType:int64_t{
-	
 	FTYP     = 0x66747970,
 	MOOV	 = 0x6D6F6F76,
 	MVHD	 = 0x6D766864,			//This box defines overall information which is media-independent, and relevant to the entire presentation
@@ -24,6 +23,11 @@ enum  BoxType:int64_t{
 	STSD	 = 0x73747364,
 	STTS	 = 0x73747473,
 	STSS	 = 0x73747373,
+	CTTS	 = 0x63747473,
+	STSC	 = 0x73747363,
+	STSZ	 = 0x7374737a,
+	STCO	 = 0x7374636F,
+	MDAT	 = 0x6d646174,
 	NONETYPE = 0x00,
 };
 
@@ -62,7 +66,7 @@ typedef struct mvhdbox {
 
 
 
-
+// tkhd 描述的该track的，如果是视频会有宽、高信息、 还有文件创建时间、修改时间等。
 typedef struct boxtkhd {
 	int version;
 /*	
@@ -75,6 +79,8 @@ typedef struct boxtkhd {
 	char flag[3];
 	Media media;
 	int64_t trackid;
+	// 可替换 track 源。如果为 0 表示当前 track 没有指定的 track 源替代。
+	// 非 0 的话，则表示存在多个源的 group
 	int16_t alternate_group;
 	int16_t layer;
 	double volume;
@@ -90,6 +96,8 @@ typedef struct boxedts {
 }EDTSBOX;
 
 
+// 当前音/视频轨/流(trak)的总体信息, 该box中有duration字段和timescale字段，duration/timescale的值即为当前流的时长。
+// 这里面也有时间基,与mvhd不知道有什么不同
 typedef struct boxmdhd {
 	int version;
 	char flag[3];
@@ -164,6 +172,7 @@ struct boxts {
 };
 
 //stts  (time to stamp)采样时戳因映射表box
+// boxts 里 sample_duration * sample_count / (mdhd)timescale = 视频时长
 typedef struct boxstts {
 	int version;
 	char flag[3];
@@ -171,11 +180,68 @@ typedef struct boxstts {
 	std::vector<boxts> *ts;
 }STTSBOX;
 
+
+// sync sample table 同步表
+// 这里面存储有关键帧序号（I帧）。猜测为IDR帧
+typedef struct boxstss {
+	int version;
+	char flag[3];
+	int64_t entry_count;
+	std::vector<int32_t>* sample_num;
+}STSSBOX;
+
+//Composition Time to Sample Box
+//ctts 有每个sample的构成时间(Composition Time)和解码时间(DTS)之间的差值(CTTS)即图中的composition_offset。
+//如果不存在ctts，则代表该流不存在B帧，那么PTS就直接等于DTS。
+typedef struct boxctts {
+	int version;
+	char flag[3];
+	int64_t entry_count;
+	std::vector<boxts>* ts;
+
+}CTTSBOX;
+
+
+struct chunk {
+	int64_t first_chunk;
+	int64_t sample_per_chunk;
+	int64_t sample_description_index;
+};
+
+// Sample To Chunk Box
+// 媒体数据的样本是被打包进chunks(块)的,chunks和样本(samples)的大小不固定，该box用于说明chunks关联样本的信息。
+// first_chunk 该入口第一个chunks的索引(index).
+// samples_per_chunk 样本数量 / chunks
+typedef struct boxstst {
+	int version;
+	char flag[3];
+	int64_t entry_count;
+	std::vector<chunk> *chunks;
+}STSCBOX;
+
+// sample size boxes 样本大小
+typedef struct boxstsz {
+	int version;
+	char flag[3];
+
+	int64_t sample_size_;
+	int64_t sample_count;
+	std::vector<int64_t> *size;
+}STSZBOX;
+
+//chunk offset boox 每个chunks相对文件的偏移量。
+typedef struct stcobox {
+	int version;
+	char flag[3];
+
+	int64_t entry_count;
+	std::vector<int64_t>* offset;
+}STCOBOX;
+
 typedef struct boxdref {
 	int version;
 	char flag[3];
 	int64_t url_count;
-
 }DREFBOX;
 
 typedef struct boxHead {
@@ -224,6 +290,11 @@ typedef union __boxer
 	DREFBOX		dref;
 	AVC1BOX		avc1;
 	STTSBOX		stts;
+	STSSBOX		stss;
+	CTTSBOX		ctts;
+	STSCBOX		stsc;
+	STSZBOX		stsz;
+	STCOBOX		stco;
 }BOXER;
 
 
@@ -238,5 +309,16 @@ typedef struct mp4Box {
 
 
 // 大端存储方式
-bool char_to_int64(const char str[], int size,int64_t& number);
+inline bool char_to_int64(const char str[], int size, int64_t& number) {
+	if (str && size <= 0) {
+		return false;
+	}
+	number = 0;
+	// 大端存储方式
+	for (int i(size); i > 0; i--) {
+		uint8_t value = str[size - i];
+		number += (int64_t)value << (i - 1) * 8;
+	}
+	return true;
+}
 #endif // !__MP4_COMMON_H__
